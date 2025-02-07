@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piano Tiles</title>
+    <style>
+        body {
+            margin: 0;
+l0l0            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        /* Video Background */
+        #video-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+
+        canvas {
+            background: rgba(255, 255, 255, 0.2);
+            display: block;
+            border-radius: 10px;
+        }
+
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-size: 24px;
+            color: white;
+            font-family: Arial, sans-serif;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        #btn {
+            margin-top: 20px;
+        }
+
+        #start_btn {
+            font-size: 1.3em;
+            width: 100px;
+            height: 100px;
+            font-family: 'Trebuchet MS', sans-serif;
+            text-align: center;
+            line-height: 100px;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            background: #5a99d4;
+            cursor: pointer;
+            transition: width 0.2s, height 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #start_btn:hover {
+            width: 110px;
+            height: 110px;
+        }
+
+        #retry {
+            position: absolute;
+            font-size: 24px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Video Background -->
+    <video id="video-bg" autoplay loop muted>
+        <source src="bg.mp4" type="video/mp4">
+    </video>
+
+    <canvas id="piano" width="300" height="600"></canvas>
+    <audio id="music" src="MUSIC.mp3"></audio>
+
+    <!-- Score Display -->
+    <div id="score">Score: 0</div>
+
+    <div id="btn">
+        <div id="start_btn">START</div>
+    </div>
+
+    <div id="retry">Coba Lagi!</div>
+
+    <script>
+        var canvas = document.getElementById("piano");
+        var ctx = canvas.getContext("2d");
+        var music = document.getElementById("music");
+        var numOfTiles = 4;
+        var myScore = 0;
+        var myTiles = [];
+        var gameRunning = false;
+        var intervalTmp;
+        var speed = 2; // Kecepatan awal balok
+
+        function startGame() {
+            if (!gameRunning) {
+                myScore = 0;
+                speed = 2; // Reset kecepatan
+                myTiles = [];
+                music.currentTime = 0;
+                music.play();
+                intervalTmp = setInterval(updateGame, 5);
+                gameRunning = true;
+                document.getElementById('start_btn').innerText = "PAUSE";
+                setTimeout(spawnBlockWithTiming, 500);
+                document.getElementById('retry').style.display = "none";
+                updateScore();
+            } else {
+                clearInterval(intervalTmp);
+                music.pause();
+                gameRunning = false;
+                document.getElementById('start_btn').innerText = "START";
+            }
+        }
+
+        document.getElementById('start_btn').addEventListener('click', startGame);
+
+        function spawnBlockWithTiming() {
+            if (!gameRunning) return;
+            var myRand = Math.floor(Math.random() * numOfTiles);
+            var block = new Block(myRand);
+
+            myTiles.push(block);
+
+            setTimeout(spawnBlockWithTiming, 800);
+        }
+
+        function Block(index) {
+            this.x = index * 75;
+            this.y = -120;
+            this.width = 75;
+            this.height = 120;
+            this.color = "black";
+        }
+
+        canvas.addEventListener("mousedown", function (e) {
+            var rect = canvas.getBoundingClientRect();
+            var clickX = e.clientX - rect.left;
+            var clickY = e.clientY - rect.top;
+
+            for (var i = 0; i < myTiles.length; i++) {
+                var tile = myTiles[i];
+                if (clickX > tile.x && clickX < tile.x + tile.width &&
+                    clickY > tile.y && clickY < tile.y + tile.height) {
+                    
+                    myTiles.splice(i, 1);
+                    increaseScore();
+                    break;
+                }
+            }
+        });
+
+        function updateGame() {
+            ctx.clearRect(0, 0, 300, 600);
+
+            ctx.font = "30px Verdana";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+            ctx.textAlign = "center";
+            ctx.fillText(myScore.toString(), canvas.width / 2, 50);
+
+            for (var i = 0; i < myTiles.length; i++) {
+                var tile = myTiles[i];
+                tile.y += speed; // Menggunakan variabel speed
+
+                if (tile.y + tile.height > 600) {
+                    tile.color = "red";
+                    stopGame();
+                }
+
+                ctx.fillStyle = tile.color;
+                ctx.fillRect(tile.x, tile.y, tile.width, tile.height);
+            }
+        }
+
+        function stopGame() {
+            clearInterval(intervalTmp);
+            music.pause();
+            gameRunning = false;
+            document.getElementById('start_btn').innerText = "GG";
+            document.getElementById('retry').style.display = "block";
+        }
+
+        function increaseScore() {
+            myScore++;
+            updateScore();
+            if (myScore % 17 === 0) {
+                speed += 0.5; // Meningkatkan kecepatan setiap 17 skor
+            }
+        }
+
+        function updateScore() {
+            document.getElementById('score').innerText = "Score: " + myScore;
+      
+        }
+    </script>
+    
+<script>
+    var gameFinished = false; // Menandai apakah game selesai karena musik habis
+
+    // Event ketika musik selesai
+    music.addEventListener("ended", function () {
+        gameFinished = true;
+        stopGame();
+        showAwesomeText();
+    });
+
+    function showAwesomeText() {
+        ctx.fillStyle = "gold";
+        ctx.font = "50px Verdana";
+        ctx.textAlign = "center";
+        ctx.fillText("AWESOME", canvas.width / 2, canvas.height / 2);
+    }
+
+    function stopGame() {
+        clearInterval(intervalTmp);
+        music.pause();
+        gameRunning = false;
+        document.getElementById('start_btn').innerText = gameFinished ? "FINISH" : "GG";
+        document.getElementById('retry').style.display = "block";
+    }
+
+    function startGame() {
+        if (!gameRunning && !gameFinished) {
+            myScore = 0;
+            speed = 2;
+            myTiles = [];
+            music.currentTime = 0;
+            music.play();
+            intervalTmp = setInterval(updateGame, 5);
+            gameRunning = true;
+            document.getElementById('start_btn').innerText = "PAUSE";
+            setTimeout(spawnBlockWithTiming, 500);
+            document.getElementById('retry').style.display = "none";
+            updateScore();
+        } else if (gameFinished) {
+            resetGame(); // Reset jika ingin mulai ulang setelah selesai
+        } else {
+            clearInterval(intervalTmp);
+            music.pause();
+            gameRunning = false;
+            document.getElementById('start_btn').innerText = "START";
+        }
+    }
+
+    function resetGame() {
+        gameFinished = false;
+        document.getElementById('start_btn').innerText = "START";
+        document.getElementById('retry').style.display = "none";
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+</script>
+
+</body>
+</html>
